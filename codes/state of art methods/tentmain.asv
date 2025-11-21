@@ -1,0 +1,131 @@
+%% Chaotic Maps Image Encryption
+clc; clear; close all;
+img =imread(' C:\Users\rimsha malik\Desktop\PhD NUST\computer vision\assignment 2\project\paper.PNG');
+[R, C, CH] = size(img);
+N = R*C*CH;
+
+%% TENT CHAOTIC MAP GENERATION
+alpha = 1.99;
+x0 = 0.52;
+
+%% Encryption Process:
+% Generate chaotic sequence
+tent_seq = generate_tent_map(alpha, x0, N);
+
+%% CONFUSION USING TENT
+% Confusion
+confused_tent = confusion_stage(img, tent_seq);
+
+%% DIFFUSION USING TENT
+% Diffusion
+encrypted_tent = diffusion_stage(confused_tent, tent_seq);
+
+figure;
+subplot(131), imshow(img), title('Original');
+subplot(132), imshow(confused_tent), title('Confused Image (Tent)');
+subplot(133), imshow(encrypted_tent), title('Encrypted Image (Tent)');
+plot_hist(img, 'Original Image (Tent)');
+
+
+%% Histogram Analysis
+plot_hist(confused_tent, 'Confused Image (Tent)');
+plot_hist(encrypted_tent, 'Encrypted Image (Tent)');
+
+chi_Image   = chi_square_hist(img, 'Original Image');
+chi_tent    = chi_square_hist(encrypted_tent,'Encrypted Image (Tent)');
+
+%% Decryption process:
+
+% TENT CHAOTIC MAP GENERATION
+% ===============================
+
+alpha = 1.99;
+x0 = 0.52;
+
+% Generate chaotic sequence
+tent_seq = generate_tent_map(alpha, x0, N);
+%% Reverse Diffusion (undo XOR)
+% Step 1: Reverse diffusion
+after_diffusion = reverse_diffusion(encrypted_tent, tent_seq );
+
+% Step 2: Reverse confusion
+decrypted_tent= reverse_confusion(after_diffusion, tent_seq  );
+
+% Display
+figure;
+subplot(131), imshow(encrypted_tent), title('Encrypted Image');
+subplot(132), imshow(after_diffusion), title('After Reverse Diffusion');
+subplot(133), imshow(decrypted_tent), title('Decrypted Image');
+
+%% Correlation Analysis:
+correlation_analysis(img, 'Original Image Correlation');
+correlation_analysis(encrypted_tent, 'Tent Encrypted Image Correlation');
+
+
+%% Sensitivity of Key for Decryption process:
+%% For Tent:
+% Encryption Key
+alpha = 1.99;
+x0 = 0.52;
+% Generate chaotic sequence
+tent_seq = generate_tent_map(alpha, x0, N);
+
+%% CONFUSION USING TENT
+confused_tent = confusion_stage(img, tent_seq);
+
+%% DIFFUSION USING TENT
+encrypted_tent = diffusion_stage(confused_tent, tent_seq);
+
+figure;
+subplot(131), imshow(img), title('Original');
+subplot(132), imshow(encrypted_tent), title('Encrypted Image (Tent)');
+
+%% Decryption key:
+alpha = 1.99;
+x0 = 0.520000001;
+
+% Generate chaotic sequence
+tent_seq = generate_tent_map(alpha, x0, N);
+% Step 1: Reverse diffusion
+after_diffusion = reverse_diffusion(encrypted_tent, tent_seq );
+
+% Step 2: Reverse confusion
+decrypted_tent= reverse_confusion(after_diffusion, tent_seq  );
+% Display
+subplot(133), imshow(decrypted_tent), title('Decrypted Image');
+sgtitle(' Image encrypted key: 0.52 & Decrypted image key: 0.520000001')
+
+%% %% Timing Analysis for Tent Map Encryption
+fprintf('=== Tent Map Encryption Timing Analysis ===\n');
+
+% Start timer
+tic;
+% Generate chaotic sequence
+tent_seq = generate_tent_map(alpha, x0, N);
+
+% Confusion
+confused_tent = confusion_stage(img, tent_seq);
+
+% Diffusion
+encrypted_tent = diffusion_stage(confused_tent, tent_seq);
+% Stop timer
+time_tent = toc;
+
+fprintf('Tent Map Encryption Time: %.6f seconds\n', time_tent);
+
+%% Optional: Repeat multiple times for average time
+num_runs = 1000;
+times_tent = zeros(1,num_runs);
+for k = 1:num_runs
+    tic;
+    tent_seq = generate_tent_map(alpha, x0, N);
+    confused_tent = confusion_stage(img, tent_seq);
+    encrypted_tent = diffusion_stage(confused_tent, tent_seq);
+    times_tent(k) = toc;
+end
+avg_time_tent = mean(times_tent);
+fprintf('Average Tent Map Encryption Time over %d runs: %.6f seconds\n', num_runs, avg_time_tent);
+
+
+
+
