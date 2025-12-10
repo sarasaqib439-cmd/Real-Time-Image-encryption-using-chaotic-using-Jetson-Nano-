@@ -21,18 +21,27 @@ from utils.hybrid_video_crypto import HybridVideoEncryption
 from utils.hybrid_video_crypto_mp import HybridVideoEncryptionMP
 from utils.video_crypto import FastVideoEncryption, LightweightVideoEncryption
 
+# Try importing CUDA version
+try:
+    from utils.hybrid_video_crypto_ctr_cuda import HybridVideoEncryptionCTRCUDA
+    CUDA_AVAILABLE = True
+except ImportError:
+    CUDA_AVAILABLE = False
 
-def encrypt_video_file(input_path, output_path, mode='hybrid', width=320, height=240, use_threads=False):
+
+def encrypt_video_file(input_path, output_path, mode='hybrid', width=320, height=240, use_threads=False, use_cuda=False, secret_key=None):
     """
     Encrypt video file and save to disk.
     
     Args:
         input_path: Input video file path
         output_path: Output encrypted file path
-        mode: Encryption mode (hybrid, fast, lightweight)
+        mode: Encryption mode (hybrid, hybrid_ctr_cuda, fast, lightweight)
         width: Frame width
         height: Frame height
         use_threads: Use multi-threaded encryption (for hybrid mode)
+        use_cuda: Use CUDA GPU acceleration (for hybrid_ctr_cuda mode)
+        secret_key: Secret encryption key (for hybrid modes)
     """
     print("\n" + "="*60)
     print("OFFLINE VIDEO ENCRYPTION")
@@ -41,6 +50,8 @@ def encrypt_video_file(input_path, output_path, mode='hybrid', width=320, height
     print(f"Output: {output_path}")
     print(f"Mode:   {mode}{'_MT' if use_threads and mode == 'hybrid' else ''}")
     print(f"Size:   {width}×{height}")
+    if secret_key and mode == 'hybrid':
+        print(f"Key:    {'*' * min(len(secret_key), 8)}... (secured)")
     if use_threads and mode == 'hybrid':
         print(f"Threads: Multi-threaded (3 workers for RGB)")
     
@@ -61,12 +72,27 @@ def encrypt_video_file(input_path, output_path, mode='hybrid', width=320, height
     print("\nInitializing encryptor...")
     init_start = time.time()
     
-    if mode == 'hybrid':
+    if mode == 'hybrid_ctr_cuda' or (mode == 'hybrid' and use_cuda):
+        if not CUDA_AVAILABLE:
+            print("❌ Error: CUDA not available. Install PyCUDA first.")
+            return False
+        if secret_key:
+            encryptor = HybridVideoEncryptionCTRCUDA(secret_key, frame_width=width, frame_height=height, use_cuda=True)
+        else:
+            encryptor = HybridVideoEncryptionCTRCUDA("default_key", frame_width=width, frame_height=height, use_cuda=True)
+        print("Using CTR+CUDA GPU acceleration (parallel mode)")
+    elif mode == 'hybrid':
         if use_threads:
-            encryptor = HybridVideoEncryptionMP(width, height, num_processes=3)
+            if secret_key:
+                encryptor = HybridVideoEncryptionMP(width, height, secret_key=secret_key, num_processes=3)
+            else:
+                encryptor = HybridVideoEncryptionMP(width, height, num_processes=3)
             print("Using multi-processing (3 processes) for true parallelism")
         else:
-            encryptor = HybridVideoEncryption(width, height)
+            if secret_key:
+                encryptor = HybridVideoEncryption(width, height, secret_key=secret_key)
+            else:
+                encryptor = HybridVideoEncryption(width, height)
     elif mode == 'fast':
         encryptor = FastVideoEncryption(width, height)
     else:
@@ -164,15 +190,19 @@ def main():
                        help='Input video file')
     parser.add_argument('--output', '-o', required=True,
                        help='Output encrypted file (.enc)')
-    parser.add_argument('--mode', '-m', choices=['hybrid', 'fast', 'lightweight'],
+    parser.add_argument('--mode', '-m', choices=['hybrid', 'hybrid_ctr_cuda', 'fast', 'lightweight'],
                        default='hybrid',
-                       help='Encryption mode (default: hybrid)')
+                       help='Encryption mode (default: hybrid, use hybrid_ctr_cuda for GPU)')
     parser.add_argument('--width', '-w', type=int, default=320,
                        help='Frame width (default: 320)')
     parser.add_argument('--height', '-H', type=int, default=240,
                        help='Frame height (default: 240)')
     parser.add_argument('--threads', '-t', action='store_true',
                        help='Use multi-processing for 2-3x speedup (hybrid mode only)')
+    parser.add_argument('--cuda', '-c', action='store_true',
+                       help='Use CUDA GPU acceleration (requires PyCUDA, 16x+ speedup)')
+    parser.add_argument('--key', '-k', type=str, default=None,
+                       help='Secret encryption key (hybrid modes only, REQUIRED for secure encryption)')
     
     args = parser.parse_args()
     
@@ -181,6 +211,12 @@ def main():
         print(f"Error: Input file not found: {args.input}")
         return
     
+    # Warn if no key provided for hybrid mode
+    if args.mode == 'hybrid' and not args.key:
+        print("\n⚠️  WARNING: No encryption key provided!")
+        print("   Using default key - encryption is NOT secure.")
+        print("   Use --key 'your_secret_key' for secure encryption.\n")
+    
     # Encrypt video
     success = encrypt_video_file(
         args.input,
@@ -188,13 +224,18 @@ def main():
         mode=args.mode,
         width=args.width,
         height=args.height,
-        use_threads=args.threads
+        use_threads=args.threads,
+        use_cuda=args.cuda,
+        secret_key=args.key
     )
     
     if success:
         print("\n✓ Video encrypted successfully!")
         print(f"\nTo decrypt and play:")
-        print(f"  python3 decrypt_video_file.py --input {args.output} --mode {args.mode}")
+        if args.key:
+            print(f"  python3 decrypt_video_file.py --input {args.output} --mode {args.mode} --key '{args.key}'")
+        else:
+            print(f"  python3 decrypt_video_file.py --input {args.output} --mode {args.mode}")
 
 
 if __name__ == '__main__':
