@@ -1,4 +1,4 @@
-# 🧪 Testing Guide - Offline Video Encryption
+# 🧪 Testing Guide
 
 Quick guide for encrypting and decrypting video files using `encrypt_video_file.py` and `decrypt_video_file.py`.
 
