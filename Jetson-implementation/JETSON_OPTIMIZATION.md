@@ -350,7 +350,7 @@ Recommended link:         1 Mbps minimum
 | Metric | Single-threaded | Multi-processing | Improvement |
 |--------|-----------------|------------------|-------------|
 | **FPS** | 2.88 | 7.59 | +163% (2.64×) |
-| **Time per frame** | 347 ms | 132 ms | -62% faster |
+| **Time per frame** | 347 ms | 132 ms | -62% (2.63× faster) |
 | **CPU usage** | 95% (1 core) | 93% (4 cores) | Better distribution |
 | **Memory** | 1.9 GB | 2.1 GB | +200 MB (10%) |
 | **Power** | 6.5W | 7.8W | +1.3W (20%) |
