@@ -94,17 +94,15 @@ class HybridVideoEncryptionMP:
     """
     
     def __init__(self, frame_width=640, frame_height=480,
+                 secret_key="default_secret_key_2025",
                  # Lorenz parameters
                  lorenz_sigma=10.0, lorenz_beta=8/3, lorenz_rho=28.0,
-                 lorenz_x0=0.1, lorenz_y0=0.0, lorenz_z0=0.1,
                  # Rossler parameters
                  rossler_a=0.2, rossler_b=0.2, rossler_c=5.7,
-                 rossler_x0=0.1, rossler_y0=0.1, rossler_z0=0.1,
                  # Henon parameters
                  henon_a=1.4, henon_b=0.3,
-                 henon_x0=0.1, henon_y0=0.1,
                  # Tent parameters
-                 tent_x0=0.12345, tent_mu=1.9999,
+                 tent_mu=1.9999,
                  # Integration settings
                  dt=0.01, t_end=8.0,
                  # Hash block size
@@ -117,18 +115,31 @@ class HybridVideoEncryptionMP:
         Initialize multi-processing hybrid video encryption.
         
         Args:
+            secret_key: Secret key for encryption (string)
             num_processes: Number of worker processes (3 for RGB parallelism)
         """
         self.width = frame_width
         self.height = frame_height
+        self.secret_key = secret_key
         
-        # Store parameters
+        # Derive initial conditions from secret key
+        initial_conditions = self._derive_initial_conditions(secret_key)
+        
+        # Store parameters with derived initial conditions
         self.lorenz_params = (lorenz_sigma, lorenz_beta, lorenz_rho, 
-                             lorenz_x0, lorenz_y0, lorenz_z0, dt, t_end)
+                             initial_conditions['lorenz_x0'], 
+                             initial_conditions['lorenz_y0'], 
+                             initial_conditions['lorenz_z0'], 
+                             dt, t_end)
         self.rossler_params = (rossler_a, rossler_b, rossler_c,
-                              rossler_x0, rossler_y0, rossler_z0, dt, t_end)
-        self.henon_params = (henon_a, henon_b, henon_x0, henon_y0)
-        self.tent_params = (tent_x0, tent_mu)
+                              initial_conditions['rossler_x0'], 
+                              initial_conditions['rossler_y0'], 
+                              initial_conditions['rossler_z0'], 
+                              dt, t_end)
+        self.henon_params = (henon_a, henon_b, 
+                            initial_conditions['henon_x0'], 
+                            initial_conditions['henon_y0'])
+        self.tent_params = (initial_conditions['tent_x0'], tent_mu)
         
         self.hash_block_size = hash_block_size
         self.num_rounds = num_rounds
@@ -141,6 +152,35 @@ class HybridVideoEncryptionMP:
         self.n_pixels = frame_width * frame_height
         self._generate_all_sequences()
         self._prepare_keystreams()
+    
+    def _derive_initial_conditions(self, secret_key):
+        """
+        Derive chaotic map initial conditions from secret key using SHA-256.
+        Same implementation as HybridVideoEncryption for consistency.
+        """
+        key_bytes = secret_key.encode('utf-8')
+        
+        hashes = []
+        for i in range(10):
+            h = hashlib.sha256(key_bytes + str(i).encode()).digest()
+            value = int.from_bytes(h[:8], byteorder='big') / (2**64)
+            hashes.append(value)
+        
+        lorenz_x0 = hashes[0] * 2 - 1
+        lorenz_y0 = hashes[1] * 2 - 1
+        lorenz_z0 = hashes[2] * 2 - 1
+        rossler_x0 = hashes[3] * 2 - 1
+        rossler_y0 = hashes[4] * 2 - 1
+        rossler_z0 = hashes[5] * 2 - 1
+        henon_x0 = hashes[6] * 2 - 1
+        henon_y0 = hashes[7] * 2 - 1
+        tent_x0 = 0.1 + hashes[8] * 0.8
+        
+        return {
+            'lorenz_x0': lorenz_x0, 'lorenz_y0': lorenz_y0, 'lorenz_z0': lorenz_z0,
+            'rossler_x0': rossler_x0, 'rossler_y0': rossler_y0, 'rossler_z0': rossler_z0,
+            'henon_x0': henon_x0, 'henon_y0': henon_y0, 'tent_x0': tent_x0
+        }
         
     def _generate_all_sequences(self):
         """Generate all chaotic sequences."""

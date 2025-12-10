@@ -47,20 +47,19 @@ class HybridVideoEncryption:
     Hybrid video encryption using 4 chaotic maps.
     Lorenz + Rossler + Henon + Tent with SHA-256 whitening.
     Optimized for real-time performance.
+    Supports secret key for deriving initial conditions.
     """
     
     def __init__(self, frame_width=640, frame_height=480,
+                 secret_key="default_secret_key_2025",
                  # Lorenz parameters
                  lorenz_sigma=10.0, lorenz_beta=8/3, lorenz_rho=28.0,
-                 lorenz_x0=0.1, lorenz_y0=0.0, lorenz_z0=0.1,
                  # Rossler parameters
                  rossler_a=0.2, rossler_b=0.2, rossler_c=5.7,
-                 rossler_x0=0.1, rossler_y0=0.1, rossler_z0=0.1,
                  # Henon parameters
                  henon_a=1.4, henon_b=0.3,
-                 henon_x0=0.1, henon_y0=0.1,
                  # Tent parameters
-                 tent_x0=0.12345, tent_mu=1.9999,
+                 tent_mu=1.9999,
                  # Integration settings (Jetson Nano optimized)
                  dt=0.01, t_end=8.0,  # Reduced to 8.0 for Jetson Nano (30% less memory)
                  # Hash block size (Jetson Nano optimized)
@@ -72,6 +71,7 @@ class HybridVideoEncryption:
         
         Args:
             frame_width, frame_height: Video dimensions
+            secret_key: Secret key for encryption (string)
             lorenz_*, rossler_*, henon_*, tent_*: Chaotic map parameters
             dt, t_end: Integration parameters for continuous systems
             hash_block_size: SHA-256 block size for whitening
@@ -79,14 +79,26 @@ class HybridVideoEncryption:
         """
         self.width = frame_width
         self.height = frame_height
+        self.secret_key = secret_key
         
-        # Store parameters
+        # Derive initial conditions from secret key
+        initial_conditions = self._derive_initial_conditions(secret_key)
+        
+        # Store parameters with derived initial conditions
         self.lorenz_params = (lorenz_sigma, lorenz_beta, lorenz_rho, 
-                             lorenz_x0, lorenz_y0, lorenz_z0, dt, t_end)
+                             initial_conditions['lorenz_x0'], 
+                             initial_conditions['lorenz_y0'], 
+                             initial_conditions['lorenz_z0'], 
+                             dt, t_end)
         self.rossler_params = (rossler_a, rossler_b, rossler_c,
-                              rossler_x0, rossler_y0, rossler_z0, dt, t_end)
-        self.henon_params = (henon_a, henon_b, henon_x0, henon_y0)
-        self.tent_params = (tent_x0, tent_mu)
+                              initial_conditions['rossler_x0'], 
+                              initial_conditions['rossler_y0'], 
+                              initial_conditions['rossler_z0'], 
+                              dt, t_end)
+        self.henon_params = (henon_a, henon_b, 
+                            initial_conditions['henon_x0'], 
+                            initial_conditions['henon_y0'])
+        self.tent_params = (initial_conditions['tent_x0'], tent_mu)
         
         self.hash_block_size = hash_block_size
         self.num_rounds = num_rounds
@@ -95,6 +107,58 @@ class HybridVideoEncryption:
         self.n_pixels = frame_width * frame_height
         self._generate_all_sequences()
         self._prepare_keystreams()
+    
+    def _derive_initial_conditions(self, secret_key):
+        """
+        Derive chaotic map initial conditions from secret key using SHA-256.
+        This makes the encryption key-dependent and secure.
+        
+        Args:
+            secret_key: User's secret key (string)
+            
+        Returns:
+            Dictionary of initial conditions for all chaotic maps
+        """
+        # Hash the key multiple times to get different values
+        key_bytes = secret_key.encode('utf-8')
+        
+        # Generate 10 different hashes for 10 initial values
+        hashes = []
+        for i in range(10):
+            h = hashlib.sha256(key_bytes + str(i).encode()).digest()
+            # Convert first 8 bytes to float in range (0, 1)
+            value = int.from_bytes(h[:8], byteorder='big') / (2**64)
+            # Scale to appropriate range for each chaotic map
+            hashes.append(value)
+        
+        # Lorenz: x, y, z in range [-1, 1]
+        lorenz_x0 = hashes[0] * 2 - 1
+        lorenz_y0 = hashes[1] * 2 - 1
+        lorenz_z0 = hashes[2] * 2 - 1
+        
+        # Rossler: x, y, z in range [-1, 1]
+        rossler_x0 = hashes[3] * 2 - 1
+        rossler_y0 = hashes[4] * 2 - 1
+        rossler_z0 = hashes[5] * 2 - 1
+        
+        # Henon: x, y in range [-1, 1]
+        henon_x0 = hashes[6] * 2 - 1
+        henon_y0 = hashes[7] * 2 - 1
+        
+        # Tent: x in range (0, 1)
+        tent_x0 = 0.1 + hashes[8] * 0.8  # Avoid extremes
+        
+        return {
+            'lorenz_x0': lorenz_x0,
+            'lorenz_y0': lorenz_y0,
+            'lorenz_z0': lorenz_z0,
+            'rossler_x0': rossler_x0,
+            'rossler_y0': rossler_y0,
+            'rossler_z0': rossler_z0,
+            'henon_x0': henon_x0,
+            'henon_y0': henon_y0,
+            'tent_x0': tent_x0
+        }
         
     def _generate_all_sequences(self):
         """Generate all chaotic sequences (Jetson Nano optimized)."""
