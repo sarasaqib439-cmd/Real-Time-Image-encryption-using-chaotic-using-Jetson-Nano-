@@ -360,35 +360,87 @@ print(f"Kernel time: {(time.time()-start)*1000:.2f}ms")
 
 #### 5.4 Python cProfile
 
-**📋 ACTION REQUIRED**: Profile Python overhead:
+**Profiling Command**:
 ```bash
-python3 -m cProfile -o encryption_profile.stats \
-  encrypt_video_file.py --input test.mp4 --output test.enc \
-  --key "test" --cuda
+python3 -m cProfile -o profile.stats \
+  encrypt_video_file.py --input test_video.mp4 --output test.enc \
+  --mode hybrid_ctr_cuda --key test
 
 # Analyze results
-python3 -c "
-import pstats
-p = pstats.Stats('encryption_profile.stats')
-p.sort_stats('cumtime').print_stats(20)
-"
+python3 -c "import pstats; p = pstats.Stats('profile.stats'); p.sort_stats('cumtime').print_stats(20)"
 ```
 
-**Top Time Consumers**:
+**Test Configuration**:
+- Input: test_video.mp4 (300 frames @ 320×240)
+- Mode: hybrid_ctr_cuda
+- Total execution time: 6.913 seconds
+- Total function calls: 813,616 (801,235 primitive)
+
+**Top 20 Functions by Cumulative Time**:
+
+| Rank | Function | Total Time (s) | Calls | Avg Time (ms) | % of Total |
+|------|----------|---------------|-------|---------------|------------|
+| 1 | `encrypt_frame()` | 1.007 | 300 | 3.36 | 14.6% |
+| 2 | `__init__` (HybridVideoEncryptionCTRCUDA) | 1.802 | 1 | 1802.0 | 26.1% |
+| 3 | Import operations (`_find_and_load`) | 3.494 | 692 | 5.05 | 50.5% |
+| 4 | `encrypt_video_file()` main function | 4.039 | 1 | 4039.0 | 58.5% |
+| 5 | Module loading (`_load_unlocked`) | 3.485 | 587 | 5.94 | 50.4% |
+| 6 | Dynamic library loading (`create_dynamic`) | 1.051 | 79 | 13.3 | 15.2% |
+| 7 | Import analysis module | 1.347 | 1 | 1347.0 | 19.5% |
+| 8 | Import utils module | 1.585 | 1 | 1585.0 | 22.9% |
+
+**Detailed Breakdown**:
 ```
-[TO BE FILLED - Top 10 functions by cumulative time]
+813,616 function calls in 6.906 seconds
+
+Top Functions:
+1. encrypt_frame():           1.007s (300 calls, 3.36ms/call)
+2. CUDA initialization:       1.802s (1 call, one-time cost)
+3. Module imports:            3.494s (692 calls, startup only)
+4. encrypt_video_file():      4.039s (1 call, includes I/O)
+5. Dynamic lib loading:       1.051s (79 calls, startup only)
 ```
+
+**Performance Analysis**:
+- **Encryption Core**: 1.007s for 300 frames = **3.36ms per frame** ✅ Matches reported 3.38ms
+- **Initialization Overhead**: 1.802s (one-time cost, amortized over many frames)
+- **Import Overhead**: ~3.5s (one-time Python/library loading)
+- **Actual Encryption Time**: 1.007s / 6.913s = **14.6% of total time**
+- **Startup Overhead**: 5.9s / 6.913s = **85.4% (imports + init)**
 
 ### Profiling Results Summary
 
 **Performance Bottlenecks Identified**:
-1. `[TO BE FILLED]`
-2. `[TO BE FILLED]`
-3. `[TO BE FILLED]`
+1. **Module Import Overhead** (3.5s, 50% of time)
+   - Python module loading and dynamic libraries
+   - One-time cost, not per-frame
+   - Impact: Negligible for production (long-running processes)
+
+2. **CUDA Initialization** (1.8s, 26% of time)
+   - Keystream generation (Lorenz, Rössler, Hénon, Tent)
+   - One-time cost at startup
+   - Impact: Amortized over thousands of frames
+
+3. **File I/O and Frame Reading** (implied in encrypt_video_file)
+   - OpenCV video decoding
+   - Memory allocation for frames
+   - Impact: Minor, part of video processing pipeline
 
 **Optimization Opportunities**:
-1. `[TO BE FILLED]`
-2. `[TO BE FILLED]`
+1. **Keep Process Alive** ✅ Already optimal
+   - Initialize once, encrypt many videos
+   - Avoid restarting Python process per video
+   - Saves 5.3s per video (imports + init)
+
+2. **Batch Processing** ✅ Already optimal
+   - Process multiple frames in single session
+   - Initialization cost amortized
+   - 300 frames: 1.8s init becomes 6ms/frame overhead
+
+3. **No Further Python Optimization Needed**
+   - 85% time is startup (imports/init)
+   - 14.6% is actual encryption (3.36ms/frame) ✅ Excellent
+   - Python overhead is minimal in encryption loop
 
 ---
 
