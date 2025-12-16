@@ -807,27 +807,7 @@ except:
 - **Result**: 2.7-4.2× faster than real-time requirement
 - **Verdict**: ✅ **Exceeds** - can handle multiple streams or higher resolutions
 
-### 10.2 Comparison with Alternative Platforms
-
-| Platform | GPU Cores | Power (W) | FPS @ 320×240 | Cost ($) | Verdict |
-|----------|-----------|-----------|---------------|----------|---------|
-| **Jetson Nano** | **128 (Maxwell)** | **5-10W** | **82-127** | **$99-149** | ✅ **Best balance** |
-| Jetson Xavier NX | 384 (Volta) | 10-20W | ~350 (est.) | $399 | ⚠️ Overkill (2.8× performance, 2.7× price) |
-| Jetson AGX Xavier | 512 (Volta) | 10-30W | ~450 (est.) | $699 | ❌ Overkill (3.5× performance, 4.7× price) |
-| Raspberry Pi 4 | 0 (CPU only) | 5-7W | ~8 (est.) | $55 | ❌ Insufficient (10× slower) |
-| x86 Desktop (GTX 1060) | 1280 (Pascal) | 120W | ~600 (est.) | $300+ | ❌ Not embedded (24× power) |
-| ARM Cortex-A57 (CPU only) | 0 | 3-5W | 7.6 | Included | ❌ Not real-time |
-
-**Decision Matrix**:
-```
-                    Performance    Power Efficiency    Cost    Form Factor    Verdict
-Jetson Nano         ████████░░     ██████████         ████    ██████████     ✅ Optimal
-Jetson Xavier NX    ██████████     ████████░░         ██░░    ██████████     Overkill
-Raspberry Pi 4      ██░░░░░░░░     ████████░░         ████    ██████████     Insufficient
-x86 Desktop         ██████████     ██░░░░░░░░         ████    ░░░░░░░░░░     Not embedded
-```
-
-### 10.3 Use Case Alignment
+### 10.2 Use Case Alignment
 
 **Target Applications**:
 1. ✅ **IoT Surveillance Systems** - Real-time encryption before cloud upload
@@ -843,7 +823,7 @@ x86 Desktop         ██████████     ██░░░░░░�
 - ✅ GPIO/CSI interfaces (direct camera connection)
 - ✅ Cost-effective ($99-149 for complete solution)
 
-### 10.4 Limitations and Mitigations
+### 10.3 Limitations and Mitigations
 
 **Limitations**:
 
@@ -867,32 +847,12 @@ x86 Desktop         ██████████     ██░░░░░░�
 - For 720p+: Consider Jetson Xavier NX or frame-dropping strategy
 - For multi-stream: Tested capable of 2-4 concurrent 320×240 streams
 
-### 10.5 ROI Analysis
-
-**Cost-Benefit Analysis**:
-
-```
-Jetson Nano Cost:               $99 (2GB) / $149 (4GB)
-Development/Setup:              $0 (open-source tools)
-Power (1 year, 24/7):          $4.56 @ $0.10/kWh (5.2W × 8760h)
-Total 1-year cost:             $154
-
-Alternative (x86 + GPU):        
-  Hardware:                     $500 (desktop + GTX 1060)
-  Power (1 year, 24/7):         $105 @ $0.10/kWh (120W × 8760h)
-  Total 1-year cost:            $605
-
-Savings:                        $451 (74% cost reduction)
-Performance difference:         ~4.7× faster (600 FPS vs 127 FPS)
-Price/performance:              Jetson Nano wins (sufficient for requirements)
-```
-
 **Deployment Advantage**:
 - ✅ **Embedded**: Can mount inside camera housing
 - ✅ **Portable**: Battery-operable (5.2W = ~2 hours on 10,000mAh power bank)
 - ✅ **Scalable**: Easy to deploy 10-100 units (low cost, small form factor)
 
-### 10.6 Final Verdict
+### 10.4 Final Verdict
 
 **Is Jetson Nano Suitable? ✅ YES**
 
@@ -925,44 +885,6 @@ Price/performance:              Jetson Nano wins (sufficient for requirements)
 - If 1080p real-time required → Jetson Orin or desktop GPU
 
 **Conclusion**: Jetson Nano is the **optimal embedded platform** for real-time video encryption at 480p and below, offering the best balance of performance, power efficiency, cost, and form factor for IoT/edge deployment scenarios.
-
----
-
-## 🏆 Actual Benchmark Results
-
-**Test Date**: December 16, 2025  
-**Command**: `python3 ./benchmark_performance.py`  
-**Test Configuration**: 30 frames per resolution, CTR+CUDA mode
-
-### Performance Summary Table
-
-```
-Resolution   CPU FPS      CTR+CUDA FPS   Speedup      Real-time?  
-----------------------------------------------------------------------
-160×120      0.37         1099.44        2987×        ✅ Yes (3665%)
-320×240      0.12         320.15         2591×        ✅ Yes (1067%)
-640×480      0.03         84.15          2481×        ✅ Yes (280%)
-----------------------------------------------------------------------
-```
-
-### Key Findings
-
-1. **Exceptional GPU Acceleration**: 2481-2987× speedup across all resolutions
-2. **All Resolutions Real-Time**: Even 640×480 achieves 84 FPS (2.8× real-time target)
-3. **Multi-Stream Ready**: 320 FPS @ 320×240 allows 10 concurrent streams
-4. **Consistent Performance**: Speedup factor remains ~2500× across resolutions
-5. **Ultra-Low Latency**: 0.91ms @ 160×120, 3.12ms @ 320×240, 11.88ms @ 640×480
-
-### CUDA Status Note
-
-**Warning Message**: `[WARNING] CUDA compilation failed: error invoking 'nvcc --version'`  
-**Actual Status**: ✅ **GPU IS WORKING!**
-
-- Performance proves GPU acceleration (2500×+ speedup impossible on CPU)
-- CUDA kernels are pre-compiled and cached in code
-- "Falling back to CPU mode" message is misleading
-- Benchmark confirms: "Device: NVIDIA Tegra X1" and "Parallel encryption enabled"
-- To fix warning: Run `source setup_cuda_env.sh` to add nvcc to PATH
 
 ---
 
