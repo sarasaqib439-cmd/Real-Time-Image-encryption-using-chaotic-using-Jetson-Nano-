@@ -48,12 +48,12 @@ The following metrics are used for analysis:
 4. Run any one of the following main files:
 
 ### **Hybrid Method**
-- `codes/hybrid approach/hybridapproachmain.m`
+- `src/hybrid approach/hybridapproachmain.m`
 
 ### **State-of-the-Art Methods**
-- `codes/state of art methods/henonmain.m`
-- `codes/state of art methods/tentmain.m`
-- `codes/state of art methods/lorenzrosslermain.m`
+- `src/state of art methods/henonmain.m`
+- `src/state of art methods/tentmain.m`
+- `src/state of art methods/lorenzrosslermain.m`
 
 
 ---
