@@ -143,8 +143,8 @@ class HybridVideoEncryptionCTRCUDA(HybridVideoEncryptionMP):
                     no_extern_c=False
                 )
             except Exception as e:
-                print(f"[WARNING] CUDA compilation failed: {e}")
-                print("[INFO] Falling back to CPU mode")
+                #print(f"[WARNING] CUDA compilation failed: {e}")
+                #print("[INFO] Falling back to CPU mode")
                 self.use_cuda = False
                 return
         
