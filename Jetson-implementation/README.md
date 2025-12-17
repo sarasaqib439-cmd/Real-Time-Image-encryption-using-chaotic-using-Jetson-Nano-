@@ -234,6 +234,30 @@ Standard MP4 video file:
 | **Jetson Performance** | 12.6 FPS | 82-127 FPS |
 | **Speedup** | 1× baseline | 16.7× faster |
 
+
+<!-- Add after an appropriate section, e.g., after Section 2 or as a new appendix -->
+
+## Appendix: CTR+CUDA vs CPU Multi-Threading Implementation Comparison
+
+| Feature                | CTR+CUDA (GPU)                                      | CPU Multi-Threading (MP)                |
+|------------------------|-----------------------------------------------------|-----------------------------------------|
+| **Parallelism**        | Massive: 128 CUDA cores (all pixels in parallel)    | 3 CPU processes (R, G, B in parallel)   |
+| **Encryption Mode**    | CTR (Counter) mode: `C[i]=P[i]⊕K[i]` (no feedback) | Feedback mode: `C[i]=P[i]⊕K[i]⊕C[i-1]`  |
+| **Permutation**        | GPU kernel (parallel shuffle)                       | NumPy sort/indexing (per process)       |
+| **Diffusion**          | XOR with chaotic keystream (CTR, parallel)          | XOR with keystream + feedback (serial)  |
+| **Rounds**             | 2 (default, configurable)                           | 2 (default, configurable)               |
+| **Keystream**          | Chaotic maps + SHA-256, rotated per round           | Chaotic maps + SHA-256, rotated         |
+| **Speed (320×240)**    | ~300–325 FPS                                        | ~7–8 FPS                                |
+| **Hardware**           | NVIDIA GPU (Jetson Nano) required                   | Any multi-core CPU                      |
+| **Dependencies**       | PyCUDA, CUDA toolkit                                | Python multiprocessing, NumPy           |
+| **Initialization**     | ~1.4s (kernel compile, context setup)               | ~1s (process pool, keystreams)          |
+| **Best Use**           | Real-time, high-throughput, embedded GPU            | Fallback, batch, no-GPU environments    |
+| **Scalability**        | Scales with frame size (GPU parallelism)            | Limited by CPU core count               |
+| **Algorithm Security** | Strong (CTR + permutation + chaos)                  | Strong (feedback + permutation + chaos) |
+| **Decryption**         | Identical process (CTR is symmetric)                | Identical, but feedback must be reversed|
+| **Output**             | Encrypted image/video frames                        | Encrypted image/video frames            |
+
+
 ### Security Analysis
 
 Both modes provide equivalent security:
