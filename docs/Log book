@@ -1,0 +1,152 @@
+# Project Logbook
+
+**Project Title:** A Real-Time Chaotic Image Encryption Model on NVIDIA Jetson Nano
+
+---
+
+## Logbook Entry 1: Literature Review
+
+**Date:** Week 1
+
+**Objective:**
+To study existing research on chaotic image encryption techniques and real-time embedded implementations.
+
+**Activities Performed:**
+
+* Reviewed IEEE and Springer papers on permutation–diffusion based chaotic encryption.
+* Studied logistic, tent, and Henon chaotic maps.
+* Analyzed prior work involving GPU and embedded platforms.
+
+**Tools/Resources Used:**
+IEEE Xplore, Google Scholar
+
+**Outcome:**
+Identified suitable chaotic models and performance gaps in existing real-time implementations.
+
+---
+
+## Logbook Entry 2: Chaotic Algorithm Selection
+
+**Date:** Week 2
+
+**Objective:**
+To select and define an appropriate chaotic encryption algorithm for real-time execution.
+
+**Activities Performed:**
+
+* Compared different chaotic maps based on complexity and randomness.
+* Designed permutation and diffusion stages.
+* Defined key space and initial parameters.
+
+**Tools/Resources Used:**
+Research papers, mathematical simulations
+
+**Outcome:**
+Finalized a permutation–diffusion based chaotic encryption scheme using logistic and Henon maps.
+
+---
+
+## Logbook Entry 3: MATLAB Implementation
+
+**Date:** Weeks 3–4
+
+**Objective:**
+To implement and validate the chaotic encryption algorithm in MATLAB.
+
+**Activities Performed:**
+
+* Implemented chaotic sequence generation.
+* Developed image permutation and diffusion logic.
+* Verified encryption correctness and reversibility.
+
+**Tools/Resources Used:**
+MATLAB
+
+**Outcome:**
+A functional chaotic image encryption algorithm validated through simulations.
+
+---
+
+## Logbook Entry 4: Jetson Nano Integration
+
+**Date:** Weeks 5–6
+
+**Objective:**
+To port the algorithm to the NVIDIA Jetson Nano platform.
+
+**Activities Performed:**
+
+* Installed JetPack SDK and required libraries.
+* Set up OpenCV and CUDA environment.
+* Integrated image capture pipeline.
+
+**Tools/Resources Used:**
+NVIDIA Jetson Nano, JetPack SDK, OpenCV
+
+**Outcome:**
+Successful deployment of the basic encryption pipeline on Jetson Nano.
+
+---
+
+## Logbook Entry 5: CUDA Optimization
+
+**Date:** Weeks 7–8
+
+**Objective:**
+To optimize the encryption algorithm for real-time GPU execution.
+
+**Activities Performed:**
+
+* Implemented CUDA kernels for permutation and diffusion.
+* Optimized memory transfers and kernel configurations.
+* Enabled maximum performance mode on Jetson Nano.
+
+**Tools/Resources Used:**
+CUDA Toolkit, cuRAND
+
+**Outcome:**
+Achieved significant speedup using GPU-centric processing.
+
+---
+
+## Logbook Entry 6: Performance Benchmarking
+
+**Date:** Week 9
+
+**Objective:**
+To evaluate real-time performance and stability.
+
+**Activities Performed:**
+
+* Measured encryption latency per frame.
+* Tested multiple image resolutions.
+* Analyzed frame rate and resource utilization.
+
+**Tools/Resources Used:**
+CUDA profiler, OpenCV
+
+**Outcome:**
+Real-time encryption achieved up to 720p resolution at ≥30 FPS.
+
+---
+
+## Logbook Entry 7: Final Documentation
+
+**Date:** Week 10
+
+**Objective:**
+To prepare final project documentation and results.
+
+**Activities Performed:**
+
+* Compiled project report and feasibility analysis.
+* Prepared figures, tables, and performance results.
+* Finalized IEEE paper draft.
+
+**Tools/Resources Used:**
+LaTeX, IEEE template
+
+**Outcome:**
+Completed and submitted final documentation.
+
+
